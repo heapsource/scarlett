@@ -5,7 +5,7 @@ Scarlett is a simple background system for Ruby.
 ## Features/Problems
 
   - Uses Rubinius Actors API (and a port for MRI) for jobs processing.
-  - Uses Redis as backend for jobs queue.
+  - Uses RabbitMQ as backend for jobs queue.
   - Uses a reliable queue maintaining jobs saved in a backup queue when the workers crash.
   - Use a simple API for jobs, Jobs are Marshallable objects that respond to #run method
 
@@ -77,7 +77,6 @@ end
 This libraby is done thanks to the work of:
 
   - MenTaLguY and his awesome work in Rubinius Actors API
-  - soveran and his work in Redis gem, Ost and his post about reliable queues
   - mperham and his posts about Rubinius Actors and his work in GirlFriday
   - All Rubinius team and contributors
 

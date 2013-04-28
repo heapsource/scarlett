@@ -6,10 +6,10 @@ require 'scarlett/version'
 Gem::Specification.new do |gem|
   gem.name          = "scarlett"
   gem.version       = Scarlett::VERSION
-  gem.authors       = ["Guillermo Iguaran"]
-  gem.email         = ["guilleiguaran@gmail.com"]
+  gem.authors       = ["Guillermo Iguaran", "Roberto Miranda"]
+  gem.email         = ["guilleiguaran@gmail.com", "rjmaltamar@gmail.com"]
   gem.description   = %q{Simple background jobs}
-  gem.summary       = %q{Simple background jobs using Rubinius Actors and Redis}
+  gem.summary       = %q{Simple background jobs using Rubinius Actors and RabbitMQ}
   gem.homepage      = ""
 
   gem.files         = `git ls-files`.split($/)
@@ -19,5 +19,5 @@ Gem::Specification.new do |gem|
 
   gem.add_dependency "rubinius-actor"
   gem.add_dependency "case"
-  gem.add_dependency "redis"
+  gem.add_dependency "bunny", "~> 0.9.0.pre9"
 end

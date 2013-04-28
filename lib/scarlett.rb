@@ -4,18 +4,22 @@ rescue RuntimeError
   require "scarlett/actor"
 end
 require "case"
-require "redis"
+require "bunny"
+require "json"
 
 class Scarlett
   FinishedWork = Case::Struct.new(:worker, :job)
-  Work = Case::Struct.new(:job)
+  Work = Case::Struct.new(:job, :tag)
+  @@buny_started = false
 
-  def self.redis
-    @@redis ||= Redis.new
+  def self.bunny
+    @@bunny ||= Bunny.new
   end
 
-  def self.redis=(redis)
-    @@redis = redis
+  def self.start_bunny
+    self.bunny.start unless @@buny_started
+    @@buny_started = true
+    self.bunny
   end
 
   class Consumer
@@ -48,6 +52,7 @@ class Scarlett
     def stop
       puts "Stopping consuming jobs in '#{@queue.name}' queue"
       @stopping = true
+      Scarlett.bunny.stop
     end
 
     def inactive_workers
@@ -66,7 +71,7 @@ class Scarlett
           worker << message
         when FinishedWork
           worker = message.worker
-          @queue.recycle(message.job)
+          @queue.ack(message[:tag])
           puts "Finished Work received, sending to Worker (#{worker.object_id}) to inactive workers"
           inactive_workers << worker
           active_workers.delete(worker)
@@ -94,7 +99,7 @@ class Scarlett
         job = @queue.pop
         next unless job
         puts "New job received, sending work to Supervisor (#{@supervisor.object_id})"
-        @supervisor << Work[job]
+        @supervisor << Work.new(job)
       end
     end
   end
@@ -102,26 +107,34 @@ class Scarlett
   class Queue
     attr_reader :name
 
-    def initialize(name)
+    def initialize(name, options = {})
       @name = name
-      @backup = "simple:#{@name}:#{Socket.gethostname}:#{Process.pid}"
-      puts "Jobs backups will be saved in #{@backup}"
+      @connection = Scarlett.start_bunny
+      @channel = @connection.create_channel
+      @channel.prefetch(1)
+      @queue = @channel.queue(@name)
     end
 
-    def push(job)
-      Scarlett.redis.lpush("simple:#{@name}", Marshal.dump(job))
+    def push(job, opts = {})
+      @queue.publish({'job' => Marshal.dump(job)}.to_json, opts.merge({ content_type: "application/json" }))
     end
 
     def pop
-      Scarlett.redis.brpoplpush("simple:#{@name}", @backup, 1)
+      job = {}
+      begin
+        info, properties, payload = @queue.pop
+        sleep 5
+        puts "This is the message: " + payload + "\n\n"
+        job = { job: JSON.parse(payload)['job'], tag: info.delivery_tag}
+      rescue => err
+        $stderr.puts "Error in queue pop"
+        $stderr.puts(err.message)
+      end
+      job
     end
 
-    def recycle(job)
-      Scarlett.redis.lrem(@backup, 1, job)
-    end
-
-    def size
-      Scarlett.redis.llen("simple:#{@name}")
+    def ack(tag)
+      @channel.ack(tag, false)
     end
   end
 end

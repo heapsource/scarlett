@@ -10,22 +10,11 @@ require "json"
 class Scarlett
   FinishedWork = Case::Struct.new(:worker, :job)
   Work = Case::Struct.new(:job, :tag)
-  @@buny_started = false
-
-  def self.bunny
-    @@bunny ||= Bunny.new
-  end
-
-  def self.start_bunny
-    self.bunny.start unless @@buny_started
-    @@buny_started = true
-    self.bunny
-  end
 
   class Consumer
     attr_accessor :active_workers, :inactive_workers, :workers, :queue
 
-    def initialize(queue, workers = 20)
+    def initialize(queue, workers = 2)
       @queue = Queue.new(queue)
       @inactive_workers = nil
       @active_workers = []
@@ -109,7 +98,8 @@ class Scarlett
 
     def initialize(name, options = {})
       @name = name
-      @connection = Scarlett.start_bunny
+      @connection = Bunny.new(options)
+      @connection.start
       @channel = @connection.create_channel
       @channel.prefetch(1)
       @queue = @channel.queue(@name)

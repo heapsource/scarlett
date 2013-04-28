@@ -110,7 +110,7 @@ class Scarlett
     end
 
     def pop
-      info, _, payload = @queue.pop
+      info, _, payload = @queue.pop(ack: true)
       return unless payload
       { payload: JSON.parse(payload)['job'], tag: info.delivery_tag}
     end

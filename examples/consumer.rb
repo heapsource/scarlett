@@ -7,7 +7,7 @@ class Job
   end
 
   def run
-    sleep 2
+    sleep 5
     puts @name
   end
 end

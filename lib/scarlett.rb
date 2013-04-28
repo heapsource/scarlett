@@ -120,17 +120,10 @@ class Scarlett
     end
 
     def pop
-      job = {}
-      begin
-        info, properties, payload = @queue.pop
-        sleep 5
-        puts "This is the message: " + payload + "\n\n"
-        job = { job: JSON.parse(payload)['job'], tag: info.delivery_tag}
-      rescue => err
-        $stderr.puts "Error in queue pop"
-        $stderr.puts(err.message)
-      end
-      job
+      info, _, payload = @queue.pop
+      return unless payload
+      puts "This is the message: " + payload + "\n\n"
+      { job: JSON.parse(payload)['job'], tag: info.delivery_tag}
     end
 
     def ack(tag)

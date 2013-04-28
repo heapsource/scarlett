@@ -41,7 +41,7 @@ class Scarlett
     def stop
       puts "Stopping consuming jobs in '#{@queue.name}' queue"
       @stopping = true
-      Scarlett.bunny.stop
+      @queue.connection.stop
     end
 
     def inactive_workers
@@ -94,7 +94,7 @@ class Scarlett
   end
 
   class Queue
-    attr_reader :name
+    attr_reader :name, :connection
 
     def initialize(name, options = {})
       @name = name

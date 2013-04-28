@@ -8,13 +8,13 @@ require "bunny"
 require "json"
 
 class Scarlett
-  FinishedWork = Case::Struct.new(:worker, :job)
+  FinishedWork = Case::Struct.new(:worker, :tag)
   Work = Case::Struct.new(:job, :tag)
 
   class Consumer
     attr_accessor :active_workers, :inactive_workers, :workers, :queue
 
-    def initialize(queue, workers = 2)
+    def initialize(queue, workers = 20)
       @queue = Queue.new(queue)
       @inactive_workers = nil
       @active_workers = []
@@ -41,7 +41,7 @@ class Scarlett
     def stop
       puts "Stopping consuming jobs in '#{@queue.name}' queue"
       @stopping = true
-      Scarlett.bunny.stop
+      @queue.close
     end
 
     def inactive_workers
@@ -60,7 +60,7 @@ class Scarlett
           worker << message
         when FinishedWork
           worker = message.worker
-          @queue.ack(message[:tag])
+          @queue.ack(message.tag)
           puts "Finished Work received, sending to Worker (#{worker.object_id}) to inactive workers"
           inactive_workers << worker
           active_workers.delete(worker)
@@ -77,7 +77,7 @@ class Scarlett
         when Work
           job = Marshal.load(message.job)
           job.run
-          @supervisor << FinishedWork[Rubinius::Actor.current, message.job]
+          @supervisor << FinishedWork[Rubinius::Actor.current, message.tag]
         end
       end
     end
@@ -87,8 +87,8 @@ class Scarlett
         break if @stopping
         job = @queue.pop
         next unless job
-        puts "New job received, sending work to Supervisor (#{@supervisor.object_id})"
-        @supervisor << Work.new(job)
+        puts "New job with tag #{job[:tag]}received, sending work to Supervisor (#{@supervisor.object_id})"
+        @supervisor << Work[job[:payload], job[:tag]]
       end
     end
   end
@@ -112,12 +112,15 @@ class Scarlett
     def pop
       info, _, payload = @queue.pop
       return unless payload
-      puts "This is the message: " + payload + "\n\n"
-      { job: JSON.parse(payload)['job'], tag: info.delivery_tag}
+      { payload: JSON.parse(payload)['job'], tag: info.delivery_tag}
     end
 
     def ack(tag)
       @channel.ack(tag, false)
+    end
+
+    def close
+      @connection.stop
     end
   end
 end

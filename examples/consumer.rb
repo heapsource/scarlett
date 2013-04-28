@@ -12,7 +12,7 @@ class Job
   end
 end
 
-n = 2
+n = 20
 consumer = Scarlett::Consumer.new("jobs_queue", n)
 puts "Starting consumer with queue 'jobs_queue' and #{n} workers"
 

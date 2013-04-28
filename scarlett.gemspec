@@ -20,4 +20,6 @@ Gem::Specification.new do |gem|
   gem.add_dependency "rubinius-actor"
   gem.add_dependency "case"
   gem.add_dependency "bunny", "~> 0.9.0.pre9"
+
+  gem.add_development_dependency "rake"
 end

@@ -41,7 +41,6 @@ class Scarlett
     def stop
       puts "Stopping consuming jobs in '#{@queue.name}' queue"
       @stopping = true
-      @queue.close
     end
 
     def inactive_workers
@@ -90,6 +89,7 @@ class Scarlett
         puts "New job with tag #{job[:tag]}received, sending work to Supervisor (#{@supervisor.object_id})"
         @supervisor << Work[job[:payload], job[:tag]]
       end
+      @queue.close
     end
   end
 
